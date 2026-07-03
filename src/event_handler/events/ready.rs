@@ -63,6 +63,11 @@ pub async fn ready(http: &Arc<serenity::Http>, bot_data: &serenity::Ready, custo
 
                         let _ = serenity::CreateMessage::new()
                             .content(message)
+                            .allowed_mentions(
+                                serenity::CreateAllowedMentions::new()
+                                    .everyone(false)
+                                    .roles(vec![data.guild.update_role]),
+                            )
                             .components(vec![action_row.clone()])
                             .execute(&http, data.guild.updates_channel.widen())
                             .await;
