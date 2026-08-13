@@ -2,6 +2,7 @@
 name = "betterstacktest"
 version = "0.1.0"
 edition = "2024"
+license = "GPL-3.0-only"
 
 [dependencies]
 chrono = { version = "0.4.43", features = ["serde"] }
