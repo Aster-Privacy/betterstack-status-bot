@@ -2,7 +2,7 @@
 
 # Better Stack Status Bot
 
-[![Build](https://github.com/Aster-Privacy/betterstack-status-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/Aster-Privacy/betterstack-status-bot/actions/workflows/ci.yml)
+[![Build](https://github.com/Aster-Privacy/Betterstack-status-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/Aster-Privacy/Betterstack-status-bot/actions/workflows/ci.yml)
 [![License: Unlicense](https://img.shields.io/badge/license-Unlicense-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-2024%20edition-orange.svg)](https://www.rust-lang.org)
 
@@ -137,7 +137,7 @@ The `/status` command takes a different path. It calls the Better Stack resource
 ## Build from source
 
 ```
-git clone https://github.com/Aster-Privacy/betterstack-status-bot.git
+git clone https://github.com/Aster-Privacy/Betterstack-status-bot.git
 cd betterstack-status-bot
 cargo build --release
 ```
