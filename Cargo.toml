@@ -2,7 +2,7 @@
 name = "betterstack-status-bot"
 version = "1.0.0"
 edition = "2024"
-rust-version = "1.92"
+rust-version = "1.95"
 description = "A Discord bot that posts Better Stack status page incidents and reports live service uptime"
 repository = "https://github.com/Aster-Privacy/betterstack-status-bot"
 license = "Unlicense"
@@ -14,7 +14,7 @@ categories = ["command-line-utilities"]
 chrono = { version = "0.4.43", features = ["serde"] }
 dotenv = "0.15.0"
 poise = { git = "https://github.com/serenity-rs/poise", branch = "serenity-next" }
-reqwest = "0.12.22"
+reqwest = { version = "0.13", features = ["json"] }
 rss = "2.0.12"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"

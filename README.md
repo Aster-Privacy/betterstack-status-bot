@@ -29,7 +29,7 @@ Aster Privacy built it to keep the [Aster Mail](https://astermail.org) community
 
 ## Requirements
 
-- Rust 1.92 or later, or Docker
+- Rust 1.95 or later, or Docker
 - A Discord application and bot token
 - A Better Stack status page, an Uptime API token, and the status page ID
 

@@ -70,7 +70,7 @@ pub async fn status(ctx: Context<'_>) -> Result<(), Error>
 
         if page == 0
         {
-            embed = embed.title("Service Status").thumbnail(guild_icon.clone());
+            embed = embed.title("Service Status").thumbnail(guild_icon.clone(), None);
         }
 
         reply = reply.embed(embed);
