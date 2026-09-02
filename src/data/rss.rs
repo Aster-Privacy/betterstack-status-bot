@@ -23,7 +23,7 @@ impl StatusPageSettings
 {
     pub async fn get_rss_feed(&self, client: &reqwest::Client, pool: &SqlitePool) -> Result<Vec<Entry>, Error>
     {
-        let response = client.get(format!("{}feed.rss", &self.link)).send().await?;
+        let response = client.get(format!("{}feed.rss", self.link)).send().await?;
         let bytes = response.bytes().await?;
         let channel = Channel::read_from(Cursor::new(bytes))?;
 
