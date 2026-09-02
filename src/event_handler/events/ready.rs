@@ -75,8 +75,14 @@ pub async fn ready(http: &Arc<serenity::Http>, bot_data: &serenity::Ready, custo
                             entry.link,
                         );
 
+                        let allowed_mentions = serenity::CreateAllowedMentions::new()
+                            .everyone(false)
+                            .all_users(false)
+                            .roles(data.guild.update_role.into_iter().collect::<Vec<_>>());
+
                         let _ = serenity::CreateMessage::new()
                             .content(message)
+                            .allowed_mentions(allowed_mentions)
                             .components(vec![action_row.clone()])
                             .execute(&http, updates_channel.widen())
                             .await;
