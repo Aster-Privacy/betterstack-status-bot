@@ -44,7 +44,10 @@ impl StatusPageSettings
 {
     pub async fn get_status_page_resource(&self, client: &reqwest::Client) -> Result<Vec<StatusPageResource>, Error>
     {
-        let url = format!("https://uptime.betterstack.com/api/v2/status-pages/{}/resources", self.page_id);
+        let url = format!(
+            "https://uptime.betterstack.com/api/v2/status-pages/{}/resources",
+            self.page_id
+        );
 
         let res = client
             .get(&url)
@@ -57,13 +60,11 @@ impl StatusPageSettings
         let resources = response
             .data
             .into_iter()
-            .map(|resource| {
-                StatusPageResource {
-                    _id: resource.id,
-                    name: resource.attributes.public_name,
-                    availability: resource.attributes.availability,
-                    status: resource.attributes.status,
-                }
+            .map(|resource| StatusPageResource {
+                _id: resource.id,
+                name: resource.attributes.public_name,
+                availability: resource.attributes.availability,
+                status: resource.attributes.status,
             })
             .collect();
 

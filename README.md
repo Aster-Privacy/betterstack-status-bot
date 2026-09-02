@@ -1,3 +1,166 @@
-# Make sure you:
-- Have message intent enabled 
-- Make a .env with "DISCORD_TOKEN", "API_TOKEN" (Better stack), "STATUS_PAGE_ID", (Better stack)
+# Better Stack Status Bot
+
+[![Build](https://github.com/Aster-Privacy/betterstack-status-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/Aster-Privacy/betterstack-status-bot/actions/workflows/ci.yml)
+[![License: Unlicense](https://img.shields.io/badge/license-Unlicense-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/rust-2024%20edition-orange.svg)](https://www.rust-lang.org)
+
+Better Stack Status Bot connects a [Better Stack](https://betterstack.com) status page to Discord. It announces every new incident and status update in the channel you choose, and it answers a `/status` command with the live uptime of each service on your page.
+
+The bot is a single Rust binary with a small SQLite file next to it. It needs no web server, no database server, and no hosting account beyond somewhere to run a process.
+
+Aster Privacy built it to keep the [Aster Mail](https://astermail.org) community informed, and it works with any Better Stack status page.
+
+## What it does
+
+- **Announces incidents.** The bot reads your status page RSS feed once a minute, posts each new entry in your updates channel, and adds a button that links back to the status page. It remembers what it has already posted, so a restart never repeats an announcement.
+- **Mentions a role.** Each announcement can ping a role you nominate, so people opt in to status pings instead of receiving every one.
+- **Reports live status.** The `/status` command reads the Better Stack API and replies with an embed listing every service, its current state, and its uptime percentage. The reply is ephemeral, so it stays visible only to the person who ran it.
+
+## Commands
+
+| Command | Who can run it | What it does |
+|---|---|---|
+| `/status` | Anyone in the server | Shows every service on the status page with its state and uptime |
+| `~register_commands` | Bot owners only | Registers the slash commands with Discord. Run this once after you invite the bot |
+
+`~` is the default prefix for text commands. To change it, set `COMMAND_PREFIX`.
+
+## Requirements
+
+- Rust 1.85 or later, or Docker
+- A Discord application and bot token
+- A Better Stack status page, an Uptime API token, and the status page ID
+
+## Getting started
+
+### 1. Create the Discord bot
+
+1. Open the [Discord Developer Portal](https://discord.com/developers/applications) and select **New Application**.
+2. Go to **Bot** and select **Reset Token** to reveal a token. Copy it, because Discord shows it only once.
+3. On the same page, turn on **Message Content Intent** under **Privileged Gateway Intents**. The bot needs it for the `~register_commands` text command.
+4. Go to **Installation**, choose a guild install context, and give the bot the `bot` and `applications.commands` scopes with the **Send Messages** and **Embed Links** permissions.
+5. Open the generated install link and add the bot to your server.
+
+### 2. Collect your Better Stack details
+
+1. In Better Stack, go to **Settings**, then **API tokens**, and create an Uptime API token.
+2. Open your status page in the Better Stack dashboard. The URL ends in the status page ID, as in `https://uptime.betterstack.com/status-pages/123456`.
+3. Note the public address of the page, such as `https://status.example.com/`. The bot reads `feed.rss` from that address.
+
+### 3. Configure the bot
+
+Copy the sample configuration and fill it in:
+
+```
+cp .env.example .env
+```
+
+To find a Discord channel, role, or user ID, turn on **Developer Mode** in Discord under **Settings**, then **Advanced**. Right-click the channel, role, or user and select **Copy ID**.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `DISCORD_TOKEN` | Yes | | Bot token from the Discord Developer Portal |
+| `API_TOKEN` | Yes | | Better Stack Uptime API token |
+| `STATUS_PAGE_ID` | Yes | | Numeric ID of your Better Stack status page |
+| `STATUS_PAGE_URL` | Yes | | Public address of the status page, such as `https://status.example.com/` |
+| `UPDATES_CHANNEL_ID` | No | | Channel that receives incident announcements. Without it, the bot serves `/status` only |
+| `UPDATE_ROLE_ID` | No | | Role to mention in each announcement. Without it, announcements mention nobody |
+| `BOT_OWNERS` | No | | Comma separated user IDs that can run `~register_commands` |
+| `COMMAND_PREFIX` | No | `~` | Prefix for text commands |
+| `POLL_INTERVAL_SECS` | No | `60` | Seconds between RSS feed checks |
+| `DATABASE_URL` | No | `sqlite:status.db` | Location of the SQLite file that records posted entries |
+| `RUST_LOG` | No | `error` | Log level. Use `info` for normal output and `debug` while troubleshooting |
+
+Keep `.env` out of version control. The included `.gitignore` already excludes it.
+
+### 4. Run it
+
+```
+cargo run --release
+```
+
+The first run creates `status.db`, records the entries already on your feed, and stays quiet about them. Only entries published after that first run get announced.
+
+Send `~register_commands` in any channel the bot can read. The bot replies to confirm, and `/status` becomes available within a minute.
+
+## Run with Docker
+
+```
+docker build -t betterstack-status-bot .
+docker run -d --name status-bot --restart unless-stopped \
+  --env-file .env \
+  -e DATABASE_URL=sqlite:/data/status.db \
+  -v status-bot-data:/data \
+  betterstack-status-bot
+```
+
+The volume keeps the record of announced entries across restarts. Without it, the bot treats every entry on your feed as new after each recreate.
+
+## Run as a service
+
+To keep the bot running on a Linux server, install the binary and add a systemd unit at `/etc/systemd/system/betterstack-status-bot.service`:
+
+```
+[Unit]
+Description=Better Stack Status Bot
+After=network-online.target
+
+[Service]
+Type=simple
+User=statusbot
+WorkingDirectory=/opt/betterstack-status-bot
+EnvironmentFile=/opt/betterstack-status-bot/.env
+ExecStart=/opt/betterstack-status-bot/betterstack-status-bot
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then enable it:
+
+```
+sudo systemctl enable --now betterstack-status-bot
+```
+
+## How it works
+
+The bot polls `STATUS_PAGE_URL` plus `feed.rss` on the interval you set. Every entry gets an identifier built from its GUID and publication date, and the bot inserts that identifier into the `guids` table in SQLite with `INSERT OR IGNORE`. An insert that changes a row means the entry is new, so the bot announces it. An insert that changes nothing means the bot has seen the entry, so it stays quiet. Announcements go out oldest first, which keeps the channel in chronological order during an incident that produces several updates at once.
+
+The `/status` command takes a different path. It calls the Better Stack resources endpoint for your status page and builds the embed from the response, so the numbers are current at the moment someone asks rather than cached from the last poll.
+
+## Build from source
+
+```
+git clone https://github.com/Aster-Privacy/betterstack-status-bot.git
+cd betterstack-status-bot
+cargo build --release
+```
+
+The binary lands in `target/release/`. To check the code the way CI does, run:
+
+```
+cargo clippy --all-targets -- -D warnings
+cargo +nightly fmt --check
+```
+
+Formatting uses nightly-only options from `rustfmt.toml`, which is why `cargo fmt` runs on the nightly toolchain. Building and testing work on stable.
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| The bot starts and exits at once | A required variable is missing. The log names it. Check `.env` against the table above |
+| `/status` never appears in Discord | Run `~register_commands`, and confirm your user ID is in `BOT_OWNERS`. Global commands take up to a minute to appear |
+| `~register_commands` gets no reply | Turn on **Message Content Intent** in the Developer Portal, then restart the bot |
+| Nothing gets announced | Confirm `UPDATES_CHANNEL_ID` is set and the bot can send messages and embed links in that channel. Set `RUST_LOG=debug` to see each poll |
+| Old incidents get announced again | The SQLite file was lost. Point `DATABASE_URL` at persistent storage, or mount a volume when you use Docker |
+
+## Contributing
+
+Issues and pull requests are welcome. Keep changes focused, run `cargo clippy` and `cargo +nightly fmt` before you open a pull request, and describe what you changed and why.
+
+## License
+
+This project is released into the public domain under [the Unlicense](LICENSE). Copy it, change it, sell it, and do whatever you want with it. No attribution required.

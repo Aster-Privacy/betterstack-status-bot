@@ -32,8 +32,9 @@ impl EventHandler for Handler
     }
 }
 
+#[allow(clippy::single_match)]
 pub async fn event_handler(ctx: &serenity::Context, event: &serenity::FullEvent, data: &Arc<Data>)
-    -> Result<(), Error>
+-> Result<(), Error>
 {
     let event_name: &str = event.into();
     let http = &ctx.http;
@@ -42,10 +43,7 @@ pub async fn event_handler(ctx: &serenity::Context, event: &serenity::FullEvent,
 
     match event
     {
-        serenity::FullEvent::Ready {
-            data_about_bot,
-            ..
-        } =>
+        serenity::FullEvent::Ready { data_about_bot, .. } =>
         {
             events::ready::ready(http, data_about_bot, data).await?;
         },

@@ -1,4 +1,5 @@
 /target
-rustfmt.toml
 .env
-status.db
+*.db
+*.db-shm
+*.db-wal

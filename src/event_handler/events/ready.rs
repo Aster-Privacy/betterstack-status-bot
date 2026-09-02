@@ -7,6 +7,7 @@ use poise::serenity_prelude::{
 use tracing::{
     error,
     info,
+    warn,
 };
 
 use crate::data::{
@@ -15,16 +16,23 @@ use crate::data::{
 };
 
 pub async fn ready(http: &Arc<serenity::Http>, bot_data: &serenity::Ready, custom_data: &Arc<Data>)
-    -> Result<(), Error>
+-> Result<(), Error>
 {
     info!("Name: {}", bot_data.user.name);
     info!("ID: {}", bot_data.user.id.get());
+
+    let Some(updates_channel) = custom_data.guild.updates_channel
+    else
+    {
+        warn!("`UPDATES_CHANNEL_ID` is not set, so incident announcements are off.");
+        return Ok(());
+    };
 
     let data = custom_data.clone();
     let http = http.clone();
 
     tokio::spawn(async move {
-        let mut interval = tokio::time::interval(std::time::Duration::from_mins(1));
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(data.poll_interval_secs));
 
         let action_row = serenity::CreateComponent::ActionRow(serenity::CreateActionRow::Buttons(
             vec![serenity::CreateButton::new_link(data.status_page.link.clone()).label("Status Page")].into(),
@@ -34,14 +42,11 @@ pub async fn ready(http: &Arc<serenity::Http>, bot_data: &serenity::Ready, custo
         {
             interval.tick().await;
 
-            match data
-                .status_page
-                .get_rss_feed(&data.client, &data.database)
-                .await
+            match data.status_page.get_rss_feed(&data.client, &data.database).await
             {
                 Ok(new_entries) =>
                 {
-                    if new_entries.len() == 0
+                    if new_entries.is_empty()
                     {
                         continue;
                     }
@@ -50,9 +55,15 @@ pub async fn ready(http: &Arc<serenity::Http>, bot_data: &serenity::Ready, custo
                     {
                         let entry = &new_entries[entry_number];
 
+                        let mention = data
+                            .guild
+                            .update_role
+                            .map(|role| format!("{}\n", role.mention()))
+                            .unwrap_or_default();
+
                         let message = format!(
-                            "{}\n<t:{}:F>\n{}\n\n{}",
-                            data.guild.update_role.mention(),
+                            "{}<t:{}:F>\n{}\n\n{}",
+                            mention,
                             entry
                                 .pub_date
                                 .map(|v| v.timestamp())
@@ -64,7 +75,7 @@ pub async fn ready(http: &Arc<serenity::Http>, bot_data: &serenity::Ready, custo
                         let _ = serenity::CreateMessage::new()
                             .content(message)
                             .components(vec![action_row.clone()])
-                            .execute(&http, data.guild.updates_channel.widen())
+                            .execute(&http, updates_channel.widen())
                             .await;
                     }
                 },

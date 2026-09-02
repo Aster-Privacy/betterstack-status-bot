@@ -9,11 +9,7 @@ pub async fn on_error(error: poise::FrameworkError<'_, Data, Error>)
 {
     match error
     {
-        poise::FrameworkError::Command {
-            error,
-            ctx,
-            ..
-        } =>
+        poise::FrameworkError::Command { error, ctx, .. } =>
         {
             debug!("Error in command `{}`: {:?}", ctx.command().name, error);
         },

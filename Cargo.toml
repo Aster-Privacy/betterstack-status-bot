@@ -1,8 +1,14 @@
 [package]
-name = "betterstacktest"
-version = "0.1.0"
+name = "betterstack-status-bot"
+version = "1.0.0"
 edition = "2024"
-license = "GPL-3.0-only"
+rust-version = "1.85"
+description = "A Discord bot that posts Better Stack status page incidents and reports live service uptime"
+repository = "https://github.com/Aster-Privacy/betterstack-status-bot"
+license = "Unlicense"
+readme = "README.md"
+keywords = ["discord", "betterstack", "status", "uptime", "bot"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 chrono = { version = "0.4.43", features = ["serde"] }
@@ -16,3 +22,8 @@ sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite", "macros"] }
 tokio = { version = "1.49.0", features = ["rt-multi-thread"] }
 tracing = "0.1.44"
 tracing-subscriber = "0.3.22"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1

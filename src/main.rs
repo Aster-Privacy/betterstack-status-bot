@@ -2,13 +2,16 @@ use std::sync::Arc;
 
 use error_handler::on_error;
 use poise::serenity_prelude as serenity;
-use tracing::debug;
+use tracing::{
+    debug,
+    error,
+};
 
 use crate::{
     commands::get_commands,
     data::{
-        utils::get_owners,
         Data,
+        config::Config,
     },
     event_handler::Handler,
 };
@@ -25,11 +28,21 @@ async fn main()
 
     tracing_subscriber::fmt::init();
 
+    let config = match Config::from_env()
+    {
+        Ok(config) => config,
+        Err(e) =>
+        {
+            error!("{e}");
+            std::process::exit(1);
+        },
+    };
+
     let options = poise::FrameworkOptions {
         commands: get_commands(),
 
         prefix_options: poise::PrefixFrameworkOptions {
-            prefix: Some("~".into()),
+            prefix: Some(config.command_prefix.clone().into()),
             ..Default::default()
         },
 
@@ -48,7 +61,7 @@ async fn main()
         },
 
         skip_checks_for_owners: false,
-        owners: get_owners(),
+        owners: config.owners.clone(),
 
         ..Default::default()
     };
@@ -58,7 +71,7 @@ async fn main()
     let token = serenity::Token::from_env("DISCORD_TOKEN").expect("`DISCORD_TOKEN` not in env.");
     let intents = serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT;
 
-    let data = Data::new().await.expect("Failed to initialize data");
+    let data = Data::new(&config).await.expect("Failed to initialize data");
 
     let client = serenity::ClientBuilder::new(token, intents)
         .framework(Box::new(framework))

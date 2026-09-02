@@ -6,10 +6,7 @@ use crate::data::{
 };
 
 /// Check the status of our services
-#[poise::command(
-    slash_command,
-    guild_only
-)]
+#[poise::command(slash_command, guild_only)]
 pub async fn status(ctx: Context<'_>) -> Result<(), Error>
 {
     ctx.defer_ephemeral().await?;
@@ -17,10 +14,7 @@ pub async fn status(ctx: Context<'_>) -> Result<(), Error>
     let data = &ctx.data();
     let guild_icon = ctx.guild().and_then(|v| v.icon_url()).unwrap_or_default();
 
-    let services = data
-        .status_page
-        .get_status_page_resource(&data.client)
-        .await?;
+    let services = data.status_page.get_status_page_resource(&data.client).await?;
 
     let mut fields = vec![];
 
@@ -28,7 +22,11 @@ pub async fn status(ctx: Context<'_>) -> Result<(), Error>
     {
         fields.push((
             service.name.clone(),
-            format!("{} ({:.2}% uptime)", capitalize(&service.status), service.availability * 100.0),
+            format!(
+                "{} ({:.2}% uptime)",
+                capitalize(&service.status),
+                service.availability * 100.0
+            ),
             false,
         ));
     }
@@ -39,8 +37,7 @@ pub async fn status(ctx: Context<'_>) -> Result<(), Error>
         .thumbnail(guild_icon)
         .fields(fields);
 
-    ctx.send(poise::CreateReply::new().embed(embed).ephemeral(true))
-        .await?;
+    ctx.send(poise::CreateReply::new().embed(embed).ephemeral(true)).await?;
 
     Ok(())
 }
@@ -54,8 +51,5 @@ fn capitalize(word: &str) -> String
     {
         return String::with_capacity(0);
     };
-    first
-        .to_uppercase()
-        .chain(chars.flat_map(char::to_lowercase))
-        .collect()
+    first.to_uppercase().chain(chars.flat_map(char::to_lowercase)).collect()
 }

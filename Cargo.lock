@@ -123,8 +123,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
 
 [[package]]
-name = "betterstacktest"
-version = "0.1.0"
+name = "betterstack-status-bot"
+version = "1.0.0"
 dependencies = [
  "chrono",
  "dotenv",

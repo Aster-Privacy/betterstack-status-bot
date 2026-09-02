@@ -5,8 +5,8 @@ use sqlx::SqlitePool;
 use tracing::error;
 
 use crate::data::{
-    status_page::StatusPageSettings,
     Error,
+    status_page::StatusPageSettings,
 };
 
 #[derive(Debug, Clone)]
@@ -39,7 +39,11 @@ impl StatusPageSettings
                 None =>
                 {
                     // jus incase if it ever happens doubt it will
-                    format!("{}-{}", item.link().unwrap_or(&self.link), item.pub_date().unwrap_or(&current_date))
+                    format!(
+                        "{}-{}",
+                        item.link().unwrap_or(&self.link),
+                        item.pub_date().unwrap_or(&current_date)
+                    )
                 },
             };
 
@@ -51,7 +55,7 @@ impl StatusPageSettings
 
             let result = sqlx::query("INSERT OR IGNORE INTO guids (id, date) VALUES (?, ?)")
                 .bind(&guid)
-                .bind(&date)
+                .bind(date)
                 .execute(pool)
                 .await;
 
