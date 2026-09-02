@@ -71,7 +71,7 @@ fn parse_owners() -> Result<HashSet<serenity::UserId>, Error>
     let Some(value) = optional("BOT_OWNERS")
     else
     {
-        warn!("`BOT_OWNERS` is not set, so nobody can run `~register_commands`.");
+        warn!("`BOT_OWNERS` is not set, so only the Discord application owner can run owner commands.");
         return Ok(HashSet::new());
     };
 

@@ -68,10 +68,26 @@ async fn main()
 
     let framework = poise::Framework::new(options);
 
-    let token = serenity::Token::from_env("DISCORD_TOKEN").expect("`DISCORD_TOKEN` not in env.");
+    let token = match serenity::Token::from_env("DISCORD_TOKEN")
+    {
+        Ok(token) => token,
+        Err(e) =>
+        {
+            error!("`DISCORD_TOKEN` is not a valid bot token: {e}");
+            std::process::exit(1);
+        },
+    };
     let intents = serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT;
 
-    let data = Data::new(&config).await.expect("Failed to initialize data");
+    let data = match Data::new(&config).await
+    {
+        Ok(data) => data,
+        Err(e) =>
+        {
+            error!("Failed to initialize: {e}");
+            std::process::exit(1);
+        },
+    };
 
     let client = serenity::ClientBuilder::new(token, intents)
         .framework(Box::new(framework))
@@ -79,5 +95,20 @@ async fn main()
         .data(Arc::new(data))
         .await;
 
-    client.unwrap().start().await.unwrap()
+    match client
+    {
+        Ok(mut client) =>
+        {
+            if let Err(e) = client.start().await
+            {
+                error!("Client stopped: {e}");
+                std::process::exit(1);
+            }
+        },
+        Err(e) =>
+        {
+            error!("Failed to build the Discord client: {e}");
+            std::process::exit(1);
+        },
+    }
 }

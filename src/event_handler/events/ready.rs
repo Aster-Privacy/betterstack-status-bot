@@ -5,6 +5,7 @@ use poise::serenity_prelude::{
     Mentionable,
 };
 use tracing::{
+    debug,
     error,
     info,
     warn,
@@ -46,6 +47,8 @@ pub async fn ready(http: &Arc<serenity::Http>, bot_data: &serenity::Ready, custo
             {
                 Ok(new_entries) =>
                 {
+                    debug!("Checked the status feed, {} new entries", new_entries.len());
+
                     if new_entries.is_empty()
                     {
                         continue;

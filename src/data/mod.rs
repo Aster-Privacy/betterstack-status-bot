@@ -49,12 +49,9 @@ impl Data
             page_id: config.page_id.clone(),
         };
 
-        if let Ok(r) = Data::check_db(&database).await
+        if !Data::check_db(&database).await?
         {
-            if r
-            {
-                status_page.get_rss_feed(&client, &database).await?;
-            };
+            status_page.get_rss_feed(&client, &database).await?;
         }
 
         Ok(Self {
@@ -83,7 +80,7 @@ impl Data
         Ok(database)
     }
 
-    // Checks if the table is empty/exists
+    // Creates the table if needed and reports whether it already holds entries
     async fn check_db(database: &Pool<Sqlite>) -> Result<bool, Error>
     {
         sqlx::query(

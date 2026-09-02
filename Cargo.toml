@@ -2,7 +2,7 @@
 name = "betterstack-status-bot"
 version = "1.0.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.92"
 description = "A Discord bot that posts Better Stack status page incidents and reports live service uptime"
 repository = "https://github.com/Aster-Privacy/betterstack-status-bot"
 license = "Unlicense"

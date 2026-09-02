@@ -2,6 +2,8 @@ use serde::Deserialize;
 
 use crate::data::Error;
 
+const MAX_PAGES: usize = 20;
+
 #[derive(Debug, Clone)]
 pub struct StatusPageSettings
 {
@@ -23,6 +25,15 @@ pub struct StatusPageResource
 struct Response
 {
     data: Vec<Resource>,
+    #[serde(default)]
+    pagination: Pagination,
+}
+
+#[derive(Default, Deserialize)]
+struct Pagination
+{
+    #[serde(default)]
+    next: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -44,29 +55,39 @@ impl StatusPageSettings
 {
     pub async fn get_status_page_resource(&self, client: &reqwest::Client) -> Result<Vec<StatusPageResource>, Error>
     {
-        let url = format!(
-            "https://uptime.betterstack.com/api/v2/status-pages/{}/resources",
+        let mut url = Some(format!(
+            "https://uptime.betterstack.com/api/v2/status-pages/{}/resources?per_page=50",
             self.page_id
-        );
+        ));
 
-        let res = client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", self.token))
-            .send()
-            .await?;
+        let mut resources = Vec::new();
 
-        let response = res.json::<Response>().await?;
+        for _ in 0..MAX_PAGES
+        {
+            let Some(next) = url.take()
+            else
+            {
+                break;
+            };
 
-        let resources = response
-            .data
-            .into_iter()
-            .map(|resource| StatusPageResource {
+            let res = client
+                .get(&next)
+                .header("Authorization", format!("Bearer {}", self.token))
+                .send()
+                .await?
+                .error_for_status()?;
+
+            let response = res.json::<Response>().await?;
+
+            resources.extend(response.data.into_iter().map(|resource| StatusPageResource {
                 _id: resource.id,
                 name: resource.attributes.public_name,
                 availability: resource.attributes.availability,
                 status: resource.attributes.status,
-            })
-            .collect();
+            }));
+
+            url = response.pagination.next;
+        }
 
         Ok(resources)
     }

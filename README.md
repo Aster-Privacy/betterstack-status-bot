@@ -1,3 +1,5 @@
+<img width="200" alt="Aster" src="https://raw.githubusercontent.com/Aster-Privacy/.github/main/profile/aster_logo.png" />
+
 # Better Stack Status Bot
 
 [![Build](https://github.com/Aster-Privacy/betterstack-status-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/Aster-Privacy/betterstack-status-bot/actions/workflows/ci.yml)
@@ -21,13 +23,13 @@ Aster Privacy built it to keep the [Aster Mail](https://astermail.org) community
 | Command | Who can run it | What it does |
 |---|---|---|
 | `/status` | Anyone in the server | Shows every service on the status page with its state and uptime |
-| `~register_commands` | Bot owners only | Registers the slash commands with Discord. Run this once after you invite the bot |
+| `~register_commands` | Application owner and anyone in `BOT_OWNERS` | Registers the slash commands with Discord. Run this once after you invite the bot |
 
 `~` is the default prefix for text commands. To change it, set `COMMAND_PREFIX`.
 
 ## Requirements
 
-- Rust 1.85 or later, or Docker
+- Rust 1.92 or later, or Docker
 - A Discord application and bot token
 - A Better Stack status page, an Uptime API token, and the status page ID
 
@@ -43,9 +45,9 @@ Aster Privacy built it to keep the [Aster Mail](https://astermail.org) community
 
 ### 2. Collect your Better Stack details
 
-1. In Better Stack, go to **Settings**, then **API tokens**, and create an Uptime API token.
+1. Go to [Better Stack API tokens](https://betterstack.com/settings/api-tokens), select your team, and copy a token from the **Uptime API tokens** section or create one.
 2. Open your status page in the Better Stack dashboard. The URL ends in the status page ID, as in `https://uptime.betterstack.com/status-pages/123456`.
-3. Note the public address of the page, such as `https://status.example.com/`. The bot reads `feed.rss` from that address.
+3. Note the public address of the page, such as `https://status.example.com/`. The bot reads `feed.rss` from that address, which Better Stack publishes for every status page.
 
 ### 3. Configure the bot
 
@@ -65,11 +67,11 @@ To find a Discord channel, role, or user ID, turn on **Developer Mode** in Disco
 | `STATUS_PAGE_URL` | Yes | | Public address of the status page, such as `https://status.example.com/` |
 | `UPDATES_CHANNEL_ID` | No | | Channel that receives incident announcements. Without it, the bot serves `/status` only |
 | `UPDATE_ROLE_ID` | No | | Role to mention in each announcement. Without it, announcements mention nobody |
-| `BOT_OWNERS` | No | | Comma separated user IDs that can run `~register_commands` |
+| `BOT_OWNERS` | No | | Comma separated user IDs that get owner commands. The Discord application owner and any team members always have them |
 | `COMMAND_PREFIX` | No | `~` | Prefix for text commands |
 | `POLL_INTERVAL_SECS` | No | `60` | Seconds between RSS feed checks |
 | `DATABASE_URL` | No | `sqlite:status.db` | Location of the SQLite file that records posted entries |
-| `RUST_LOG` | No | `error` | Log level. Use `info` for normal output and `debug` while troubleshooting |
+| `RUST_LOG` | No | `info` | Log level. Use `debug` while troubleshooting |
 
 Keep `.env` out of version control. The included `.gitignore` already excludes it.
 
@@ -128,7 +130,9 @@ sudo systemctl enable --now betterstack-status-bot
 
 The bot polls `STATUS_PAGE_URL` plus `feed.rss` on the interval you set. Every entry gets an identifier built from its GUID and publication date, and the bot inserts that identifier into the `guids` table in SQLite with `INSERT OR IGNORE`. An insert that changes a row means the entry is new, so the bot announces it. An insert that changes nothing means the bot has seen the entry, so it stays quiet. Announcements go out oldest first, which keeps the channel in chronological order during an incident that produces several updates at once.
 
-The `/status` command takes a different path. It calls the Better Stack resources endpoint for your status page and builds the embed from the response, so the numbers are current at the moment someone asks rather than cached from the last poll.
+On a first run, when the table is still empty, the bot records everything already on the feed without announcing any of it. That keeps your channel from filling with your incident history the first time you start the bot. On every later start it announces anything published while it was offline.
+
+The `/status` command takes a different path. It calls the Better Stack resources endpoint for your status page and builds the embed from the response, so the numbers are current at the moment someone asks rather than cached from the last poll. The command follows the pagination links in the response, and it splits the reply across several embeds because Discord allows only 25 fields in one.
 
 ## Build from source
 
@@ -145,22 +149,32 @@ cargo clippy --all-targets -- -D warnings
 cargo +nightly fmt --check
 ```
 
-Formatting uses nightly-only options from `rustfmt.toml`, which is why `cargo fmt` runs on the nightly toolchain. Building and testing work on stable.
+Formatting uses nightly-only options from `rustfmt.toml`, which is why `cargo fmt` runs on the nightly toolchain. Building and linting work on stable.
 
 ## Troubleshooting
 
 | Symptom | Cause and fix |
 |---|---|
 | The bot starts and exits at once | A required variable is missing. The log names it. Check `.env` against the table above |
-| `/status` never appears in Discord | Run `~register_commands`, and confirm your user ID is in `BOT_OWNERS`. Global commands take up to a minute to appear |
+| `/status` never appears in Discord | Run `~register_commands` as the owner of the Discord application, or add your user ID to `BOT_OWNERS`. Global commands take up to a minute to appear |
 | `~register_commands` gets no reply | Turn on **Message Content Intent** in the Developer Portal, then restart the bot |
 | Nothing gets announced | Confirm `UPDATES_CHANNEL_ID` is set and the bot can send messages and embed links in that channel. Set `RUST_LOG=debug` to see each poll |
 | Old incidents get announced again | The SQLite file was lost. Point `DATABASE_URL` at persistent storage, or mount a volume when you use Docker |
 
+## Community
+
+Join our [Discord](https://discord.gg/R4XqRUfgWZ) to share feedback, ask questions, and contribute to the privacy community. You can also find us on [X](https://x.com/AsterPrivacy) and [Reddit](https://www.reddit.com/r/AsterPrivacy).
+
+If you have any questions or security disclosures, email us at [hello@astermail.org](mailto:hello@astermail.org) or [security@astermail.org](mailto:security@astermail.org). **Do not open a public issue for security vulnerabilities.** Read [SECURITY.md](SECURITY.md) for the full security vulnerability disclosure process.
+
 ## Contributing
 
-Issues and pull requests are welcome. Keep changes focused, run `cargo clippy` and `cargo +nightly fmt` before you open a pull request, and describe what you changed and why.
+Issues and pull requests are welcome. Keep changes focused, run `cargo clippy --all-targets -- -D warnings` and `cargo +nightly fmt` before you open a pull request, and describe what you changed and why.
+
+By contributing, you agree to release your contribution into the public domain under the same terms as the rest of this repository.
 
 ## License
 
 This project is released into the public domain under [the Unlicense](LICENSE). Copy it, change it, sell it, and do whatever you want with it. No attribution required.
+
+Aster's other projects are licensed under AGPL v3. This one is not, so nothing here places any obligation on your own code.
